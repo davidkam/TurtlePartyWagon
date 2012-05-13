@@ -45,6 +45,9 @@ function processCode($code) {
   foreach($lines as $line) {
     $line = trim($line);
     list($cmd, $param1, $param2) = explode(' ', $line);
+    $ocmd = $cmd;
+    $oparam1 = $param1;
+    $oparam2 = $param2;
     // figure out polarity
     switch($cmd) {
       case CMD_REVERSE:
@@ -86,7 +89,7 @@ function processCode($code) {
             $finalcode[] = "$cmd " . ($number % CONST_MAXNUM);
           }
         }
-        $prettycode[] = "$cmd $param1";
+        $prettycode[] = "$ocmd $oparam1";
         break;
       case CMD_CENTER:
       case CMD_LEFT:
@@ -98,7 +101,7 @@ function processCode($code) {
             case ($param1 == PARAM_LEFT):
             case ($param1 == PARAM_RIGHT):
               $finalcode[] = "$cmd $param1";
-              $prettycode[] = "$cmd $param1";
+              $prettycode[] = "$ocmd $oparam1";
               break;
           }
         }
@@ -116,10 +119,15 @@ function processCode($code) {
 
     $port = findPort();
     $cmd = SHELL_JAVACMD . " $fullFilename $port";
-//print $cmd;
     $status = `$cmd`;
-//print "\n<br /><br />\n\n";
-//print $status;
+    $statusData = explode("\n",$status);
+    $junk = array_pop($statusData);
+    $lastLine = trim(array_pop($statusData));
+    if($lastLine == 'SENDING: STOP') {
+      $status = 'Command Successfully Executed.';
+    } else {
+      $status = 'Error: ' . $lastLine;
+    }
   }
   return $prettycode;
 
@@ -154,8 +162,11 @@ function validNum($num) {
 <html>
 <head>
 <title>Turtle Party Wagon (tm)</title>
+<link rel="icon" href="/images/favicon.ico">
 <link rel="stylesheet" href="/styles/reset.css" type="text/css">
 <link rel="stylesheet" href="/styles/screen.css" type="text/css">
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script src="/scripts/nrd.js"></script>
 </head>
 <body>
   <div class="container">
@@ -165,18 +176,22 @@ function validNum($num) {
         <fieldset>
           <legend>Program</legend>
           <div class="colone">
-            <textarea name="code"></textarea>
+            <textarea class="code" name="code"></textarea>
           </div>
           <div class="coltwo">
             <div class="preview">
-<h3>Executed Code:</h3>
-<pre>
-<?php echo $code; ?>
-</pre>
+<?php if($code != ''): ?>
+              <h3>Executed Code:</h3>
+              <div class="copy"><a href="#" class="copylink">(copy)</a></div>
+              <div class="rerun"><a href="#" class="rerunlink">(rerun)</a></div>
+<?php endif; ?>
+              <div class="codeblock">
+                <pre class="code-exec"><?php echo $code; ?></pre>
+              </div>
             </div>
           </div>
         </fieldset>
-        <input type="submit" name="submit" value="Run" />
+        <input type="submit" value="Run" />
       </form>
     </div>
   </div>
