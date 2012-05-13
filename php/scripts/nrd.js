@@ -4,7 +4,6 @@ $(document).ready(function() {
   });
   $('.rerunlink').bind('click', function() {
     copy();
-console.log($('form'));
     $('form').submit();
   });
 });
