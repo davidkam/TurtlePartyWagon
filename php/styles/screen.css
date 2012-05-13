@@ -1,0 +1,48 @@
+body {
+  font-family: Helvetica, Verdana;
+  text-align: center;
+  background-image: url("/images/background_carbonfiber.png");
+  color: #dfdfdf;
+}
+
+div.container {
+  width: 930px;
+  margin: 0 auto;
+  text-align: left;
+  position: relative;
+}
+
+div.content {
+  overflow: hidden;
+}
+
+h1 {
+  margin-top: 20px;
+  font-size: 30px;
+  font-weight: bold;
+  text-align: center;
+}
+
+fieldset {
+  border:1px solid white;
+  padding: 10px;
+}
+
+textarea {
+  resize:none;
+  height: 400px;
+  width: 640px;
+}
+
+input[type=submit] {
+  float: right;
+  margin-top: 20px;
+}
+.colone {
+  float: left;
+  width: 660px
+}
+.coltwo {
+  float: right;
+  width: 240px;
+}
