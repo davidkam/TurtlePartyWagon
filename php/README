@@ -1,0 +1,9 @@
+This is the structure that should be on the web server:
+[BASE]
+  - docs = the DocumentRoot for the website
+  - includes = the includes directory for the PHP classes
+  - scripts = the directory where the compiled code gets written to that gets passed to the java file.  Needs to be writeable for the web user.  Contents in here should be ignored and cleared out every so often
+  - bin = the java executables.  There are only two files in here, the .jar file and the .jnilib file.  Both can also be found in the java/rel/ folder.
+
+
+
