@@ -1,161 +1,11 @@
 <?php
-define('CMD_FORWARD', 'FORWARD');
-define('CMD_REVERSE', 'REVERSE');
-define('CMD_REVERSE_CMD', 'BACKWARD');
-define('CMD_WHEELS', 'WHEELS');
-define('CMD_CENTER', 'CENTER');
-define("CMD_LEFT", "LEFT");
-define('CMD_RIGHT', 'RIGHT');
-define('PARAM_CENTER', 1);
-define('PARAM_LEFT', 2);
-define('PARAM_RIGHT', 3);
-define('CMD_GOTO', 'GOTO');
-
-define('BASEPATH', dirname(__FILE__) . '/..');
-define('SCRIPTPATH', BASEPATH . '/scripts/');
-define('BINPATH', BASEPATH . '/bin/');
-
-define('CONST_MAXNUM', 255);
-define('SHELL_FINDPORT', 'find /dev -name "tty.usbmodem*" 2>/dev/null');
-define('SHELL_JAVACMD', "java -Djava.library.path=" . '"' . BINPATH . '"' . ' -jar ' . BINPATH . 'RemoteCarRXTX.jar');
-//define('SHELL_JAVACMD', 'java -jar ' . BINPATH . 'RemoteCarRXTX.jar');
-
-define('TRUE_POLARITY', false);
-
-$code = '';
-
+require_once('config.php');
+require_once(INCLUDEPATH . 'class.command.php');
+require_once(INCLUDEPATH . 'class.java_connector.php');
 
 if(isset($_POST['code']) && $_POST['code'] != '') {
-  $rawcode = $_POST['code'];
-  $code = processCode($rawcode);
-}
-
-function findPort() {
-  $cmd = SHELL_FINDPORT;
-  $port = `$cmd`;
-  return $port;
-}
-
-function processCode($code) {
-  $finalcode = array();
-  $prettycode = array();
-  $code = trim(strtoupper($code));
-  $code = preg_replace('/ {2,}/',' ', $code);
-  $lines = explode("\n",$code);
-  foreach($lines as $line) {
-    $line = trim($line);
-    list($cmd, $param1, $param2) = explode(' ', $line);
-    $ocmd = $cmd;
-    $oparam1 = $param1;
-    $oparam2 = $param2;
-    // figure out polarity
-    switch($cmd) {
-      case CMD_REVERSE:
-      case CMD_REVERSE_CMD:
-        $cmd = (TRUE_POLARITY)?CMD_REVERSE_CMD:CMD_FORWARD;
-        break;
-      case CMD_FORWARD:
-        $cmd = (TRUE_POLARITY)?CMD_FORWARD:CMD_REVERSE_CMD;
-        break;
-      case CMD_CENTER:
-        $cmd = CMD_WHEELS;
-        $param1 = PARAM_CENTER;
-        $param2 = '';
-        break;
-      case CMD_LEFT:
-        $cmd = CMD_WHEELS;
-        $param1 = (TRUE_POLARITY)?PARAM_LEFT:PARAM_RIGHT;
-        $param2 = '';
-        break;
-      case CMD_RIGHT:
-        $cmd = CMD_WHEELS;
-        $param1 = (TRUE_POLARITY)?PARAM_RIGHT:PARAM_LEFT;
-        $param2 = '';
-        break;
-    }
-    switch($cmd) {
-      case CMD_REVERSE:
-      case CMD_REVERSE_CMD:
-      case CMD_FORWARD:
-        if(validNum($param1) && !validNum($param2)) {
-          $number = intval($param1);
-          if($number <= CONST_MAXNUM) {
-            $finalcode[] = "$cmd $param1";
-          } else {
-            $multiple = floor($number / CONST_MAXNUM);
-            for($x = 0; $x < $multiple; $x++) {
-              $finalcode[] = "$cmd " . CONST_MAXNUM;
-            }
-            $finalcode[] = "$cmd " . ($number % CONST_MAXNUM);
-          }
-        }
-        $prettycode[] = "$ocmd $oparam1";
-        break;
-      case CMD_CENTER:
-      case CMD_LEFT:
-      case CMD_RIGHT:
-      case CMD_WHEELS:
-        if(validNum($param1) && !validNum($param2)) {
-          switch($param1) {
-            case ($param1 == PARAM_CENTER):
-            case ($param1 == PARAM_LEFT):
-            case ($param1 == PARAM_RIGHT):
-              $finalcode[] = "$cmd $param1";
-              $prettycode[] = "$ocmd $oparam1";
-              break;
-          }
-        }
-        break;
-    }
-  }
-  $finalcode = implode($finalcode,"\n");
-  $finalcode = str_replace("",'',$finalcode);
-  $prettycode = implode($prettycode,"\n");
-  $prettycode = str_replace("",'',$prettycode);
-  if($finalcode != '') {
-    $filename = createFileName();
-    $fullFilename = SCRIPTPATH . $filename;
-    file_put_contents($fullFilename, $finalcode);
-
-    $port = findPort();
-    $cmd = SHELL_JAVACMD . " $fullFilename $port";
-    $status = `$cmd`;
-    $statusData = explode("\n",$status);
-    $junk = array_pop($statusData);
-    $lastLine = trim(array_pop($statusData));
-    if($lastLine == 'SENDING: STOP') {
-      $status = 'Command Successfully Executed.';
-    } else {
-      $status = 'Error: ' . $lastLine;
-    }
-  }
-  return $prettycode;
-
-}
-
-function createFileName() {
-  $done = false;
-  while(!$done) {
-    $filename = getFileName();
-    if(!file_exists(SCRIPTPATH . $filename)) {
-      $done = true;
-    }
-  }
-  return $filename;
-}
-
-function getFileName() {
-  list($usec, $sec) = explode(" ", microtime());
-  $stuff = '';
-  for($x = 0; $x < 6; $x++) {
-    $stuff .= rand(0,9);
-  }
-  $filename = "$sec-$stuff.txt";
-  return $filename;
-}
-function validNum($num) {
-  $status =  (($num == "0") ||($num != '' && intval($num) != 0));
-  return $status;
+  $code = new javaConnector($_POST['code']);
+  $code->processCode();
 }
 ?>
 <!DOCTYPE html>
@@ -180,18 +30,18 @@ function validNum($num) {
           </div>
           <div class="coltwo">
             <div class="preview">
-<?php if($code != ''): ?>
+<?php if(is_object($code) && $code->getStatus() != ''): ?>
               <h3>Executed Code:</h3>
               <div class="copy"><a href="#" class="copylink">(copy)</a></div>
               <div class="rerun"><a href="#" class="rerunlink">(rerun)</a></div>
-<?php endif; ?>
               <div class="codeblock">
-                <pre class="code-exec"><?php echo $code; ?></pre>
+                <pre class="code-exec"><?php echo $code->getPrettycode(); ?></pre>
               </div>
+<?php endif; ?>
             </div>
           </div>
         </fieldset>
-        <input type="submit" value="Run" />
+        <input type="submit" name="whee" value="Run" />
       </form>
     </div>
   </div>
